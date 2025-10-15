@@ -1,0 +1,22 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_VERSION = "9"
+  DATABASE_URL = "file:./dev.db"
+  JWT_SECRET = "sin-japan-logi-secret-key-2025-production-change-this"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[functions]
+  node_bundler = "esbuild"
+
+# リダイレクト設定
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+

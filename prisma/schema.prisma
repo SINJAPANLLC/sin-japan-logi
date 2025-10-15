@@ -1,0 +1,185 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// SQLite用: ENUMの代わりにStringを使用
+// UserType: "SHIPPER" (荷主) | "CARRIER" (運送会社)
+// ShipmentStatus: "OPEN" (募集中) | "MATCHED" (マッチング済み) | "IN_TRANSIT" (輸送中) | "DELIVERED" (配達完了) | "CANCELLED" (キャンセル)
+// OfferStatus: "PENDING" (保留中) | "ACCEPTED" (承認済み) | "REJECTED" (拒否) | "CANCELLED" (キャンセル)
+// VehicleType: "LIGHT_TRUCK" | "SMALL_TRUCK" | "MEDIUM_TRUCK" | "LARGE_TRUCK" | "TRAILER" | "REFRIGERATED" | "FLATBED" | "WING"
+
+model User {
+  id            String      @id @default(cuid())
+  email         String      @unique
+  password      String
+  userType      String      // "SHIPPER" or "CARRIER"
+  companyName   String
+  contactPerson String
+  phone         String
+  postalCode    String?
+  address       String?
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  // Relations
+  shipments     Shipment[]  @relation("ShipperShipments")
+  offers        Offer[]
+  carrierShipments Shipment[] @relation("CarrierShipments")
+  vehicles      Vehicle[]
+  
+  @@map("users")
+}
+
+model Shipment {
+  id                String          @id @default(cuid())
+  
+  // 荷主情報
+  shipperId         String
+  shipper           User            @relation("ShipperShipments", fields: [shipperId], references: [id])
+  
+  // 荷物情報
+  cargoName         String
+  cargoDescription  String?
+  cargoWeight       Float           // kg単位
+  cargoVolume       Float?          // m³単位
+  cargoValue        Float?          // 貨物価値（円）
+  
+  // 集荷情報
+  pickupAddress     String
+  pickupCity        String
+  pickupPrefecture  String
+  pickupPostalCode  String
+  pickupDate        DateTime
+  pickupTimeFrom    String?         // "09:00"形式
+  pickupTimeTo      String?         // "18:00"形式
+  
+  // 配送情報
+  deliveryAddress   String
+  deliveryCity      String
+  deliveryPrefecture String
+  deliveryPostalCode String
+  deliveryDate      DateTime
+  deliveryTimeFrom  String?
+  deliveryTimeTo    String?
+  
+  // 要求事項
+  requiredVehicleType String          // VehicleType as String
+  needsHelper       Boolean         @default(false) // 荷役作業の有無
+  needsLiftGate     Boolean         @default(false) // リフトゲート必須
+  temperature       String?         // 温度管理要件
+  specialInstructions String?
+  
+  // 料金
+  budget            Float           // 予算（円）
+  
+  // ステータス
+  status            String          @default("OPEN")
+  
+  // マッチング情報
+  carrierId         String?
+  carrier           User?           @relation("CarrierShipments", fields: [carrierId], references: [id])
+  
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  // Relations
+  offers            Offer[]
+  
+  @@map("shipments")
+  @@index([status])
+  @@index([pickupPrefecture])
+  @@index([deliveryPrefecture])
+  @@index([pickupDate])
+}
+
+model Offer {
+  id            String       @id @default(cuid())
+  
+  // オファー情報
+  shipmentId    String
+  shipment      Shipment     @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  
+  carrierId     String
+  carrier       User         @relation(fields: [carrierId], references: [id])
+  
+  // 提案内容
+  proposedPrice Float        // 提案金額（円）
+  message       String?      // 運送会社からのメッセージ
+  vehicleInfo   String?      // 使用予定車両情報
+  estimatedPickupTime String? // 集荷予定時刻
+  estimatedDeliveryTime String? // 配達予定時刻
+  
+  // ステータス
+  status        String       @default("PENDING")
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  @@map("offers")
+  @@index([shipmentId])
+  @@index([carrierId])
+  @@index([status])
+}
+
+model Vehicle {
+  id                String          @id @default(cuid())
+  
+  // 運送会社情報
+  carrierId         String
+  carrier           User            @relation(fields: [carrierId], references: [id])
+  
+  // 車両基本情報
+  vehicleType       String          // 車両タイプ
+  vehicleNumber     String          // 車両番号
+  driverName        String          // 運転手名
+  driverPhone       String          // 運転手電話番号
+  
+  // 車両仕様
+  maxWeight         Float           // 最大積載重量（kg）
+  maxVolume         Float?          // 最大積載容積（m³）
+  length            Float?          // 車両長（m）
+  width             Float?          // 車両幅（m）
+  height            Float?          // 車両高（m）
+  
+  // 設備・機能
+  hasLiftGate       Boolean         @default(false) // リフトゲート有無
+  hasRefrigeration  Boolean         @default(false) // 冷凍・冷蔵機能
+  hasTemperatureControl Boolean     @default(false) // 温度管理機能
+  canLoadUnload     Boolean         @default(true)  // 荷役作業可能
+  
+  // 運行可能エリア
+  availablePrefectures String       // 運行可能都道府県（JSON配列として保存）
+  
+  // 運行可能日時
+  availableFrom     DateTime        // 運行可能開始日時
+  availableTo       DateTime        // 運行可能終了日時
+  
+  // 料金設定
+  basePrice         Float?          // 基本料金（円/km）
+  minPrice          Float?          // 最低料金（円）
+  
+  // ステータス
+  status            String          @default("AVAILABLE") // "AVAILABLE" | "IN_USE" | "MAINTENANCE" | "UNAVAILABLE"
+  
+  // 備考
+  notes             String?         // 備考・特記事項
+  
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  @@map("vehicles")
+  @@index([carrierId])
+  @@index([vehicleType])
+  @@index([status])
+  @@index([availableFrom])
+  @@index([availableTo])
+}
+
