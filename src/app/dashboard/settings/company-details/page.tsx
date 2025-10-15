@@ -446,3 +446,4 @@ export default function CompanyDetailsPage() {
     </DashboardLayout>
   )
 }
+
