@@ -44,7 +44,7 @@ export async function DELETE(
     return NextResponse.json({ 
       success: false, 
       message: 'Failed to delete post', 
-      error: error.message 
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }

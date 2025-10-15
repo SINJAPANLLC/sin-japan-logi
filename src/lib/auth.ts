@@ -7,7 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 export interface JWTPayload {
   userId: string
   email: string
-  userType: 'SHIPPER' | 'CARRIER'
+  userType: 'SHIPPER' | 'CARRIER' | 'ADMIN'
 }
 
 // パスワードのハッシュ化
@@ -59,5 +59,36 @@ export function getTokenFromCookies(cookies: string): string | null {
   }
   
   return tokenCookie.split('=')[1]
+}
+
+// 管理者権限チェック
+export function isAdmin(userType: string): boolean {
+  return userType === 'ADMIN'
+}
+
+// 管理者認証ミドルウェア
+export function requireAdmin(payload: JWTPayload): boolean {
+  return payload.userType === 'ADMIN'
+}
+
+// セキュアな管理者トークン生成
+export function generateAdminToken(payload: JWTPayload): string {
+  if (payload.userType !== 'ADMIN') {
+    throw new Error('管理者権限が必要です')
+  }
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' })
+}
+
+// 管理者セッション検証
+export function verifyAdminSession(token: string): JWTPayload | null {
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as JWTPayload
+    if (payload.userType !== 'ADMIN') {
+      return null
+    }
+    return payload
+  } catch (error) {
+    return null
+  }
 }
 

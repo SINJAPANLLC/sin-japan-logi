@@ -58,7 +58,7 @@ export default function SettingsPage() {
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
       ...prev,
-      [section]: !prev[section]
+      [section]: !prev[section as keyof typeof prev]
     }))
   }
 
@@ -167,14 +167,14 @@ export default function SettingsPage() {
                     <section.icon className="h-4 w-4 mr-2 text-gray-600" />
                     <span className="font-medium text-gray-900">{section.section}</span>
                   </div>
-                  {expandedSections[section.section] ? (
+                  {expandedSections[section.section as keyof typeof expandedSections] ? (
                     <ChevronUp className="h-4 w-4 text-gray-400" />
                   ) : (
                     <ChevronDown className="h-4 w-4 text-gray-400" />
                   )}
                 </button>
                 
-                {expandedSections[section.section] && (
+                {expandedSections[section.section as keyof typeof expandedSections] && (
                   <div className="ml-6 mt-2 space-y-1">
                     {section.items.map((item) => (
                       <button

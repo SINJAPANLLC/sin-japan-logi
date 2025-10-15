@@ -126,7 +126,7 @@ export default function ProfilePage() {
       }
 
       const updatedUser = { ...user, ...formData }
-      setUser(updatedUser)
+      setUser(updatedUser as UserProfile)
       localStorage.setItem('user', JSON.stringify(updatedUser))
       setEditing(false)
     } catch (error) {

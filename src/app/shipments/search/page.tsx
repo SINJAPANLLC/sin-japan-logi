@@ -19,7 +19,8 @@ import {
   Eye,
   Heart,
   Share2,
-  ArrowRight
+  ArrowRight,
+  Package
 } from 'lucide-react'
 
 interface Shipment {
